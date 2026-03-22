@@ -5,6 +5,11 @@ public class BankBalanceSheet {
     private double totalLoans;
     private double totalDeposits;
 
+    // Period income tracking (for reporting; does not affect balance sheet totals directly)
+    private double grossInterestIncome;
+    private double depositInterestExpense;
+    private double chargeOffLosses;
+
     public BankBalanceSheet(double initialReserves, double initialLoans, double initialDeposits) {
         validateNonNegative(initialReserves, "Initial reserves");
         validateNonNegative(initialLoans, "Initial loans");
@@ -76,6 +81,54 @@ public class BankBalanceSheet {
             throw new IllegalArgumentException("Cannot decrease deposits below zero.");
         }
         totalDeposits -= amount;
+    }
+
+    // ---- Income tracking ----
+
+    public void recordInterestIncome(double amount) {
+        if (amount > 0) grossInterestIncome += amount;
+    }
+
+    public void recordDepositInterestExpense(double amount) {
+        if (amount > 0) depositInterestExpense += amount;
+    }
+
+    public void recordChargeOff(double amount) {
+        if (amount > 0) chargeOffLosses += amount;
+    }
+
+    public double getGrossInterestIncome() { return grossInterestIncome; }
+    public double getDepositInterestExpense() { return depositInterestExpense; }
+    public double getChargeOffLosses() { return chargeOffLosses; }
+
+    public double getNetInterestIncome() {
+        return grossInterestIncome - depositInterestExpense;
+    }
+
+    public double getNetIncome() {
+        return grossInterestIncome - depositInterestExpense - chargeOffLosses;
+    }
+
+    /** Resets period income/expense counters (call at start of each new period). */
+    public void resetPeriodCounters() {
+        grossInterestIncome = 0;
+        depositInterestExpense = 0;
+        chargeOffLosses = 0;
+    }
+
+    /**
+     * Checks that Assets = Liabilities + Equity (within rounding tolerance).
+     * Because equity is derived, this is always true — but the check guards
+     * against negative equity (insolvency).
+     */
+    public boolean isSolvent() {
+        return getEquity() >= 0;
+    }
+
+    public boolean isBalanced() {
+        double assets = getTotalAssets();
+        double liabPlusEquity = getTotalLiabilities() + getEquity();
+        return Math.abs(assets - liabPlusEquity) < 0.01;
     }
 
     private void validatePositive(double amount, String fieldName) {
